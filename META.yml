@@ -16,7 +16,7 @@ name: WWW-Coursera
 provides:
   WWW::Coursera:
     file: lib/WWW/Coursera.pm
-    version: 0.01
+    version: 0.02
 requires:
   Carp: 1.26
   HTTP::Cookies: 6.01
@@ -24,4 +24,4 @@ requires:
   perl: 5.006
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.01
+version: 0.02
