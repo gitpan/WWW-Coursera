@@ -7,7 +7,7 @@ build_requires:
 configure_requires:
   Module::Build: 0.40
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4005, CPAN::Meta::Converter version 2.112621'
+generated_by: 'Module::Build version 0.4007, CPAN::Meta::Converter version 2.132661'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -16,7 +16,7 @@ name: WWW-Coursera
 provides:
   WWW::Coursera:
     file: lib/WWW/Coursera.pm
-    version: 0.02
+    version: 0.03
 requires:
   Carp: 1.26
   HTTP::Cookies: 6.01
@@ -24,4 +24,4 @@ requires:
   perl: 5.006
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.02
+version: 0.03

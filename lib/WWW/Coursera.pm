@@ -19,7 +19,7 @@ Version 0.02
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 
 =head1 SYNOPSIS
@@ -119,16 +119,16 @@ sub get_session {
     my( $self) = @_;
 		
     $self->{bot}->add_header('Cookie' => "csrftoken=$self->{key}");
-    $self->{bot}->add_header('Referer' => 'https://www.coursera.org');
+    $self->{bot}->add_header('Referer' => 'https://accounts.coursera.org/signin');
     $self->{bot}->add_header('X-CSRFToken' => "$self->{key}");
-    $self->{bot}->add_header('X-Requested-With' => 'XMLHttpRequest' );
+#    $self->{bot}->add_header('X-Requested-With' => 'XMLHttpRequest' );
     
-    my $response=$self->{bot}->post('https://www.coursera.org/maestro/api/user/login', [ email_address => "$self->{username}",  password => "$self->{password}"]);
+    my $response=$self->{bot}->post('https://accounts.coursera.org/api/v1/login', [ email => "$self->{username}",  password => "$self->{password}"]);
     $self->{bot}->get("https://class.coursera.org/$self->{course}/auth/auth_redirector?type=login&subtype=normal&email=&visiting=index");
     my $session=$self->{bot}->cookie_jar()-> {"COOKIES"}-> {"class.coursera.org"}-> {"/$self->{course}"}-> {"session"}->[1];
     $self->{session}=$session;
     
-    croak "Session key does'n exist!" unless $self->{session};
+    #croak "Session key does'n exist!" unless $self->{session};
     return $self->{session};
 }
 
@@ -144,9 +144,8 @@ sub get_links {
     $self->{bot}->get("https://class.coursera.org/$self->{course}/auth/auth_redirector?type=login&subtype=normal&email=&visiting=index");
     my $session=$self->{bot}->cookie_jar()-> {"COOKIES"}-> {"class.coursera.org"}-> {"/$self->{course}"}-> {"session"}->[1];
     $self->{bot}->add_header("Cookie" => "csrf_token=$self->{key}");
-    $self->{bot}->add_header("session" => "$self->{session}");
+    #$self->{bot}->add_header("session" => "$self->{session}");
     my $response = $self->{bot}->post("https://class.coursera.org/$self->{course}/lecture/index");
-    
     $self->{response}=$response;
     return $self->{bot}->links();
 }
