@@ -20,11 +20,11 @@ WWW::Coursera - Downloading parallel material (video, text, pdf ...) from Course
 
 =head1 VERSION
 
-version 0.04
+version 0.06
 
 =cut
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 
 has username => (
@@ -276,7 +276,7 @@ sub run {
 
 =head1 AUTHOR
 
-Ovidiu Nita Tatar, C<< <ovn.tatar at gmail.com> >>
+Ovidiu N. Tatar, C<< <ovn.tatar at gmail.com> >>
 
 =head1 BUGS
 
@@ -305,7 +305,7 @@ To install this module, run the following commands:
 
         OR (if you don't have write permissions to create man3) use cpanminus: 
 
-        cpanm WWW-Coursera-0.04.tar.gz
+        cpanm WWW-Coursera
 
 
 =head1 SUPPORT
@@ -347,7 +347,7 @@ L<http://search.cpan.org/dist/WWW-Coursera/>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2013 Ovidiu Nita Tatar.
+Copyright 2013 Ovidiu N. Tatar.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
