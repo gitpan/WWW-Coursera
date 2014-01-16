@@ -16,7 +16,7 @@ use Carp qw(croak) ;
 
 =head1 NAME
 
-WWW::Coursera - Downloading paralell material (video, text, pdf ...) from Coursera.org online classes.
+WWW::Coursera - Downloading parallel material (video, text, pdf ...) from Coursera.org online classes.
 
 =head1 VERSION
 
@@ -24,7 +24,38 @@ version 0.04
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
+
+
+has username => (
+    is       => 'ro',
+    required => 1,
+);
+
+has password => (
+    is       => 'ro',
+    required => 1,
+);
+
+has course_id => (
+    is       => 'ro',
+    required => 1,
+);
+
+has debug => (
+    is      => 'rw',
+    default => 0,
+);
+
+has max_parallel_download => (
+    is      => 'rw',
+    default => 10,
+);
+
+has override_existing_files => (
+    is      => 'rw',
+    default => 0,
+);
 
 
 =head1 SYNOPSIS
@@ -34,17 +65,17 @@ our $VERSION = '0.04';
     
     The only one requirement is to enroll the course online.
 
+
     use WWW::Coursera;
     my $init = WWW::Coursera->new(
-        username              => 'xxxx',		#is required
-        password              => 'xxxx',		#is required
-        course_id             => "xxxx",		#is required
-        debug                 => 1,			#default disabled
-        max_parallel_download => 10,			#default 10
-        override_existing_files => 1,			#default false
+        username              	=> 'xxxx',	#is required
+        password              	=> 'xxxx',	#is required
+        course_id             	=> "xxxx",	#is required
+        debug                 	=> 1,		#default disabled
+        max_parallel_download 	=> 10,		#default 10
+        override_existing_files	=> 1,		#default false
       );
       $init->run;
-
 
 =head1 SUBROUTINES/METHODS
 
@@ -254,11 +285,11 @@ the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WWW-Course
 automatically be notified of progress on your bug as I make changes.
 
 
-=head1 REQUIREMNET
+=head1 REQUIREMENT
 
         perl 5.010 or higher
         Enrol course before start downloding
-        For more infor regarding requires modules (see Build.PL)
+        For more info regarding requires modules (see Build.PL)
 
 =head1 INSTALLATION
 

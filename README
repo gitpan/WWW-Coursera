@@ -1,17 +1,17 @@
 WWW-Coursera
 
-	WWW::Coursera - Downloading paralell material (video, text, pdf ...) 
+	WWW::Coursera - Downloading parallel material (video, text, pdf ...) 
 	from Coursera.org online classes.
 
 	Project HOME:
 
 	https://github.com/ovntatar/WWW-Coursera
 
-REQUIREMNET
+REQUIREMENT
 
 	perl 5.010 or higher
         Enrol course before start downloding 	
-	For more infor regarding requires modules (see Build.PL)
+	For more info regarding requires modules (see Build.PL)
 
 INSTALLATION
 
