@@ -1,10 +1,10 @@
 {
-   "abstract" : "Downloading material (video, text, pdf ...) from Coursera.org online classes.",
+   "abstract" : "Downloading paralell material (video, text, pdf ...) from Coursera.org online classes.",
    "author" : [
       "Ovidiu Nita Tatar <ovn.tatar@gmail.com>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4007, CPAN::Meta::Converter version 2.132661",
+   "generated_by" : "Module::Build version 0.4203",
    "license" : [
       "perl_5"
    ],
@@ -21,22 +21,23 @@
       },
       "configure" : {
          "requires" : {
-            "Module::Build" : "0.40"
+            "Module::Build" : "0.42"
          }
       },
       "runtime" : {
          "requires" : {
-            "Carp" : "1.26",
-            "HTTP::Cookies" : "6.01",
-            "WWW::Mechanize" : "1.72",
-            "perl" : "5.006"
+            "AnyEvent" : "7.07",
+            "Carp" : "1.32",
+            "File::Path" : "2.08_01",
+            "Mojolicious" : "4.67",
+            "perl" : "5.01"
          }
       }
    },
    "provides" : {
       "WWW::Coursera" : {
          "file" : "lib/WWW/Coursera.pm",
-         "version" : "0.03"
+         "version" : "0.04"
       }
    },
    "release_status" : "stable",
@@ -45,5 +46,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.03"
+   "version" : "0.04"
 }

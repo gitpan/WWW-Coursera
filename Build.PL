@@ -1,4 +1,4 @@
-use 5.006;
+use 5.010;
 use strict;
 use warnings;
 use Module::Build;
@@ -12,11 +12,12 @@ my $builder = Module::Build->new(
         'Test::More' => 0,
     },
     requires => {
-        'perl' 			=> 5.006,
-	'WWW::Mechanize'	=> 1.72,
-	'HTTP::Cookies'		=> 6.01,
-	'Carp'			=> 1.26 
-    },
+        'perl'                         => 5.010,
+    	'AnyEvent' => '7.07',
+    	'Carp' => '1.32',
+    	'File::Path' => '2.08_01',
+    	'Mojolicious' => '4.67',
+	},
     add_to_cleanup      => [ 'WWW-Coursera-*' ],
     create_makefile_pl => 'traditional',
 );

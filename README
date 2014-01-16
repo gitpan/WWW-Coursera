@@ -1,39 +1,52 @@
 WWW-Coursera
 
-	WWW::Coursera - Downloading material (video, text, pdf ...) 
+	WWW::Coursera - Downloading paralell material (video, text, pdf ...) 
 	from Coursera.org online classes.
 
 	Project HOME:
 
 	https://github.com/ovntatar/WWW-Coursera
 
+REQUIREMNET
+
+	perl 5.010 or higher
+        Enrol course before start downloding 	
+	For more infor regarding requires modules (see Build.PL)
+
 INSTALLATION
 
 To install this module, run the following commands:
+
+        git clone https://github.com/ovntatar/WWW-Coursera.git
+        cd WWW-Coursera
 
 	perl Build.PL
 	./Build
 	./Build test
 	./Build install
 
+	OR (if you don't have write permissions to create man3) use cpanminus:
+
+	cpanm WWW-Coursera-0.04.tar.gz 
+
 SYNOPSIS
 
-It scrapes the course index page to get lecture names, 
-and then downloads the related materials.
-
-snippet.
-
 	use WWW::Coursera;
-	my $initial = WWW::Coursera->new( username => 'xxxxx', 
-	password => 'xxxx', course => 'xxxx');
-	$initial->set_localdir("/home/xxxxx/Perl/Coursera/tmp");
-	$initial->get_all();
+    	
+	my $init = WWW::Coursera->new(
+        	username              => 'xxxx',                #is required
+        	password              => 'xxxx',                #is required
+        	course_id             => "xxxx",                #is required
+        	debug                 => 1,                     #default disabled
+        	max_parallel_download => 10,                    #default 10
+        	override_existing_files => 1,                   #default false
+      	);
+      	$init->run;
 
 
 SUPPORT AND DOCUMENTATION
 
-After installing, you can find documentation for this module with the
-perldoc command.
+After installing, you can find documentation for this module with the perldoc command.
 
   perldoc WWW::Coursera
    
@@ -65,4 +78,5 @@ under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
+
 

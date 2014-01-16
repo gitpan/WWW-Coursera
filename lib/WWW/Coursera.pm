@@ -1,213 +1,245 @@
 package WWW::Coursera;
 
-use 5.006;
 use strict;
 use warnings;
 
-use WWW::Mechanize;
-use HTTP::Cookies;
-use WWW::Mechanize::Link;
-use Carp qw(croak);
+use 5.010;
+use Moo;
+use Mojo::DOM;
+use Mojo::UserAgent;
+use AnyEvent;
+use AnyEvent::Util 'fork_call';
+my $cv = AE::cv;
+use File::Path qw( make_path );
+use Carp qw(croak) ;
+
 
 =head1 NAME
 
-WWW::Coursera - Downloading material (video, text, pdf ...) from Coursera.org online classes.
+WWW::Coursera - Downloading paralell material (video, text, pdf ...) from Coursera.org online classes.
 
 =head1 VERSION
 
-Version 0.02
+version 0.04
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 
 =head1 SYNOPSIS
 
-It scrapes the course index page to get lecture names, and then downloads the related
-materials.
+    Scrape video materials from lectures area and download paralell related files.
+    The default download directory is set to the course_id.
+    
+    The only one requirement is to enroll the course online.
 
-Code snippet.
+    use WWW::Coursera;
+    my $init = WWW::Coursera->new(
+        username              => 'xxxx',		#is required
+        password              => 'xxxx',		#is required
+        course_id             => "xxxx",		#is required
+        debug                 => 1,			#default disabled
+        max_parallel_download => 10,			#default 10
+        override_existing_files => 1,			#default false
+      );
+      $init->run;
 
- use WWW::Coursera;
- my $initial = WWW::Coursera->new( username => 'xxxxx', password => 'xxxx', course => 'xxxx');
- $initial->set_localdir("/home/xxxxx/Perl/Coursera/tmp");
- $initial->get_all();
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new
+=head2 directory
 
-Object construction with user authorization and course name parameter. 
+  Create new directory 
 
 =cut
 
-sub new {
-    my $class = shift;
-    croak "Illegal parameter list has odd number of values" if @_ % 3;
-    my %params = @_;
-    my $self = { %params, @_ };
-    bless $self, $class;
-
-    for my $required (qw{ username password course  }) {
-			croak "Required parameter '$required' missing in constructor" unless exists $params{$required};  
-    }    
-    return $self;
+sub directory {
+    my $self = shift;
+    unless ( -d $self->{course_id} ) {
+        make_path $self->{course_id} or die "Failed to create path: 
+  $self->{course_id}";
+    }
 }
 
-=head2 set_localdir
+=head2 extentions
 
-Set download folder by set $inizial->set_localdir("OS_FOLDER");
+  Definition of downoading extentions
 
 =cut
 
-sub set_localdir {
-    my( $self, $set_localdir) = @_;
-    if (-d "$set_localdir") {
-			$self->{set_localdir}=$set_localdir;
-			return $self->{set_localdir};
-		} else {
-			croak "Directory $set_localdir does'n exist";
-		}
+sub extentions {
+    my $self = shift;
+    my @extention = ( "mp4", "txt", "pdf", "pptx", "srt" );
+    return @extention;
+}
+
+=head2 UserAgent
+
+  Create UserAgent object
+
+=cut
+
+sub UserAgent {
+    my $self = shift;
+    my $ua   = Mojo::UserAgent->new;
+    $ua = $ua->max_redirects(1);
+    $self->{ua} = $ua;
 }
 
 
-=head2 set_cookie
+=head2 csrf
 
-In the source code below, will create a cookie named cookie.txt to store header information.
+  Save csrf token for authentication
 
 =cut
 
-sub set_cookie {
-	
-    my( $self) = @_;
-  
-    my $bot = WWW::Mechanize->new();
-    $bot->agent_alias( 'Linux Mozilla' );
-    $bot->cookie_jar( HTTP::Cookies->new(file => "cookie.txt", autosave => 1, ignore_discard => 1 ) );
-    $self->{bot}=$bot;
-    
-    croak "Mechanize object does'n exist!" unless $self->{bot};
-    return $self->{bot};
+sub csrf {
+    my $self = shift;
+    $self->UserAgent;
+    my $tx =
+      $self->{ua}
+      ->get("https://class.coursera.org/$self->{course_id}/lecture/index");
+    my $csrf = $tx->res->cookies->[0]->{value};
+    croak "Error: No CSRF key available my be the couse is not available"
+      unless $csrf;
+    $self->{csrf} = $csrf;
+    say "The CSRF key is : $csrf" if $self->debug;
 }
 
-=head2 set_csrftoken
+=head2 login
 
-Filter csrf_token key from the cookie.txt file.
+  Login with username, password and csrftoken
 
 =cut
 
-sub set_csrftoken {
-    my( $self) = @_;
-    
-    my $response = $self->{bot}->post("https://class.coursera.org/$self->{course}/lecture/index");
-    my $key=$self->{bot}->cookie_jar()-> {"COOKIES"}-> {"class.coursera.org"}-> {"/$self->{course}"}-> {"csrf_token"}->[1];
-    $self->{key}=$key;
-    
-    croak "COOKIES key does'n exist!" unless $self->{key};
-    return $self->{key};
+sub login {
+    my $self = shift;
+    $self->csrf;
+    my $tx = $self->{ua}->post(
+        'https://accounts.coursera.org/api/v1/login' => {
+            'Cookie'      => "csrftoken=$self->{csrf}",
+            'X-CSRFToken' => "$self->{csrf}"
+          } => form =>
+          { email => "$self->{username}", password => "$self->{password}" }
+    );
+    say "The http response code from login page is :" . $tx->res->code
+      if $self->debug;
+    unless ( $tx->res->code == 200 ) {
+        my ( $err1, $code1 ) = $tx->error;
+        say $code1 ? "$code1 response: $err1" : "Connection error: $err1";
+    }
 }
 
-=head2 get_session
+=head2 convert_filename
 
-Send a new html request to get session cokkie token and save session key in global variable.
+  Replace all non word chars with underscore
 
 =cut
 
-sub get_session {
-	
-    my( $self) = @_;
-		
-    $self->{bot}->add_header('Cookie' => "csrftoken=$self->{key}");
-    $self->{bot}->add_header('Referer' => 'https://accounts.coursera.org/signin');
-    $self->{bot}->add_header('X-CSRFToken' => "$self->{key}");
-#    $self->{bot}->add_header('X-Requested-With' => 'XMLHttpRequest' );
-    
-    my $response=$self->{bot}->post('https://accounts.coursera.org/api/v1/login', [ email => "$self->{username}",  password => "$self->{password}"]);
-    $self->{bot}->get("https://class.coursera.org/$self->{course}/auth/auth_redirector?type=login&subtype=normal&email=&visiting=index");
-    my $session=$self->{bot}->cookie_jar()-> {"COOKIES"}-> {"class.coursera.org"}-> {"/$self->{course}"}-> {"session"}->[1];
-    $self->{session}=$session;
-    
-    #croak "Session key does'n exist!" unless $self->{session};
-    return $self->{session};
+sub convert_filename {
+    my ( $self, $string, $ext ) = @_;
+    $string =~ s/\W/_/g;
+    $string =~ s/__/_/g;
+    $string = "$string" . ".$ext";
+    $string =~ s/_\././g;
+    say "Convert string $string" if $self->debug;
+    return $string;
 }
 
-=head2 get_links
+=head2 extract_urls
 
-Extract links from course index page.
+  Scrape urls from lectures
 
 =cut
 
-sub get_links {
-    my( $self) = @_;
-    
-    $self->{bot}->get("https://class.coursera.org/$self->{course}/auth/auth_redirector?type=login&subtype=normal&email=&visiting=index");
-    my $session=$self->{bot}->cookie_jar()-> {"COOKIES"}-> {"class.coursera.org"}-> {"/$self->{course}"}-> {"session"}->[1];
-    $self->{bot}->add_header("Cookie" => "csrf_token=$self->{key}");
-    #$self->{bot}->add_header("session" => "$self->{session}");
-    my $response = $self->{bot}->post("https://class.coursera.org/$self->{course}/lecture/index");
-    $self->{response}=$response;
-    return $self->{bot}->links();
+sub extract_urls {
+    my $self = shift;
+    $self->login;
+    my %urls;
+    my $r =
+      $self->{ua}->get("https://class.coursera.org/$self->{course_id}/lecture");
+    if ( my $res = $r->success ) {
+        my $dom = $r->res->dom->html->body;
+        $dom->find('div.course-lecture-item-resource')->each(
+            sub {
+                my ( $e, $count ) = @_;
+                my $title = $e->find('a[data-if-linkable=modal-lock]')->each(
+                    sub {
+                        my ( $b, $cnt ) = @_;
+                        my $file = $b->find('div.hidden')->text;
+                        my $url  = $b->attr('href');
+                        foreach my $ext ( $self->extentions ) {
+                            if ( "$url" =~ m/$ext/ ) {
+                                my $conv_name =
+                                  $self->convert_filename( $file, $ext );
+                                $urls{$conv_name} = "$url";
+                            }
+                        }
+                    }
+                );
+            }
+        );
+        $self->{urls} = \%urls;
+    }
+    else {
+        my ( $err, $code ) = $res->error;
+        say $code ? "$code response: $err" : "Connection error: $err";
+    }
 }
 
 =head2 download
 
-Download lectures.
+  Download lectures in the course_id folder
 
 =cut
 
 sub download {
-	
-  my( $self) = @_;
-  
-	my @extentions=("mp4","txt","pdf","pptx","srt");
-	foreach my $items ($self->get_links()) {
-		
-		foreach my $ext (@extentions) {
-			
-			if ( $items->[0] =~ /$ext/i) {
-				
-				my $st=$items->[1];
-				
-				if ($st =~ /for\s+/i) {
-				my $st2=$';
-				$st2 =~ s/^ //;
-				$st2 =~s/\W+/_/g;
-				
-					if ( $self->{set_localdir} ) {
-						print "Downloading class: " . $items->[1] . "\n" ;
-						$self->{bot}->get( "$items->[0]", ":content_file" => "$self->{set_localdir}/$st2.$ext" );
-					} else {
-						print "Downloading class: " . $items->[1] . "\n"  ;
-						$self->{bot}->get( "$items->[0]", ":content_file" => "$st2.$ext" );
-					}
-					
-				}	
-				
-			}
-			
-		}	
-		
-		
-	}			
+    my ( $self, $file ) = @_;
+    say "Start download $file in $self->{course_id}";
+    my $url = $self->{urls}->{$file};
+    $self->directory;
+    my $path = "$self->{course_id}/$file";
+
+    if ( $self->override_existing_files ) {
+        my $response = $self->{ua}->get( $url, { Accept => '*/*' } )->res;
+        open my $fh, '>', $path or die "Could not open [$file]: $!";
+        print $fh $response->body;
+    }
+    else {
+        if ( !-e $path ) {
+            my $response = $self->{ua}->get( $url, { Accept => '*/*' } )->res;
+            open my $fh, '>', $path or die "Could not open [$file]: $!";
+            print $fh $response->body;
+        }
+    }
 }
 
-=head2 get_all
 
-Main, which marks the entry point of the program.
+
+=head2 run
+
+  Entry point of the package
 
 =cut
 
-sub get_all {
-	
-    my( $self) = @_;
-    
-    $self->set_cookie();
-    $self->set_csrftoken();
-    $self->get_session();
-    return $self->download();
-	
+sub run {
+    my $self = shift;
+    $AnyEvent::Util::MAX_FORKS = $self->max_parallel_download;
+    $self->extract_urls;
+    my @arr = keys $self->{urls};
+    foreach my $file (@arr) {
+        $cv->begin;
+        fork_call {
+            $self->download($file);
+        }
+        sub {
+            $cv->end;
+          }
+    }
+    $cv->recv;
 }
+
 
 
 
@@ -222,6 +254,27 @@ the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WWW-Course
 automatically be notified of progress on your bug as I make changes.
 
 
+=head1 REQUIREMNET
+
+        perl 5.010 or higher
+        Enrol course before start downloding
+        For more infor regarding requires modules (see Build.PL)
+
+=head1 INSTALLATION
+
+To install this module, run the following commands:
+
+	git clone https://github.com/ovntatar/WWW-Coursera.git
+	cd WWW-Coursera
+        
+	perl Build.PL
+        ./Build
+        ./Build test
+        ./Build install
+
+        OR (if you don't have write permissions to create man3) use cpanminus: 
+
+        cpanm WWW-Coursera-0.04.tar.gz
 
 
 =head1 SUPPORT
